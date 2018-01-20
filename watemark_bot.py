@@ -2,6 +2,7 @@
 import os
 import hashlib
 import telebot
+import piexif
 from PIL import Image, ImageFont, ImageDraw, ImageEnhance
 
 bot = telebot.TeleBot('TOKEN')
@@ -25,6 +26,7 @@ def watermark(img, new_fname, color):
     wm.putalpha(alpha)
     out_path = 'images/out/{}/{}'.format(color, new_fname)
     Image.composite(wm, img, wm).save(out_path, 'JPEG')
+
 
 def all_files_size():
     '''
@@ -72,6 +74,17 @@ def send_watermark(message):
 
     if fname not in os.listdir('images/out/black'):
         image = Image.open(path).convert('RGB')
+
+        # Если в Exif есть тег Orientation, то поворачиваем изображение
+        try:
+            exif_dict = piexif.load(image.info['exif'])
+            orientation = exif_dict['0th'][274]
+        except KeyError:
+            orientation = None
+        rotate_values = {3: 180, 6: 270, 8: 90}
+        if orientation in rotate_values:
+            image = image.rotate(rotate_values[orientation], expand=True)
+
         watermark(image, fname, 'black')
         watermark(image, fname, 'white')
 
