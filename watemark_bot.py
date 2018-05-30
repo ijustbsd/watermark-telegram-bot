@@ -5,7 +5,7 @@ import telebot
 import piexif
 from PIL import Image, ImageFont, ImageDraw, ImageEnhance
 
-bot = telebot.TeleBot('TOKEN')
+bot = telebot.TeleBot(os.getenv('TOKEN'))
 
 
 def watermark(img, new_fname, color):

@@ -1,0 +1,3 @@
+pyTelegramBotAPI
+Pillow
+piexif
