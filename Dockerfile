@@ -1,13 +1,13 @@
-FROM python:3.6-slim
+FROM python:slim
 
-WORKDIR /app
+COPY watemark_bot.py /bot/watemark_bot.py
+COPY Vera_Crouz.ttf /bot/Vera_Crouz.ttf
+COPY exec.sh /bot/exec.sh
 
-ADD . /app
+RUN \
+    chmod +x /bot/exec.sh && \
+    pip install --upgrade pip && \
+    pip install pyTelegramBotAPI Pillow piexif && \
+    rm -rf /var/lib/apt/lists/*
 
-RUN pip install --trusted-host pypi.python.org -r requirements.txt
-RUN mkdir -p images/out/black
-RUN mkdir -p images/out/white
-
-ENV TOKEN YourToken
-
-CMD ["python", "watemark_bot.py"]
+CMD ["/bot/exec.sh"]
