@@ -1,1 +1,1 @@
-# watemark-telegram-bot
+# watermark-telegram-bot

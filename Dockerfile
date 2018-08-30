@@ -1,6 +1,6 @@
 FROM python:slim
 
-COPY watemark_bot.py /bot/watemark_bot.py
+COPY watermark_bot.py /bot/watermark_bot.py
 COPY Vera_Crouz.ttf /bot/Vera_Crouz.ttf
 COPY exec.sh /bot/exec.sh
 
