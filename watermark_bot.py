@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-import os
 import hashlib
-import telebot
+import os
+
 import piexif
-from PIL import Image, ImageFont, ImageDraw, ImageEnhance
+import telebot
+from PIL import Image, ImageDraw, ImageEnhance, ImageFont
 
 bot = telebot.TeleBot(os.getenv('TOKEN'))
 
