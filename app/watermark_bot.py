@@ -1,19 +1,21 @@
 # -*- coding: utf-8 -*-
 import hashlib
+import io
 import os
 
 import piexif
 import telebot
-from PIL import Image, ImageDraw, ImageEnhance, ImageFont
+from PIL import Image, ImageDraw, ImageEnhance, ImageFont, ImageSequence
 
 bot = telebot.TeleBot(os.getenv('TOKEN'))
 
+watermark_text = os.getenv('WATERMARK')
 
-def watermark(img, new_fname, color):
+
+def watermark(img, new_fname, text, color):
     '''
     Рисует водяной знак и сохраняет изображение.
     '''
-    text = '@ijustkate_'
     wm = Image.new('RGBA', img.size, (0, 0, 0, 0))
     fontsize = img.size[1] // 100 * 12
     font = ImageFont.truetype('Vera_Crouz.ttf', fontsize)
@@ -27,6 +29,31 @@ def watermark(img, new_fname, color):
     wm.putalpha(alpha)
     out_path = 'images/out/{}/{}'.format(color, new_fname)
     Image.composite(wm, img, wm).save(out_path, 'JPEG')
+
+
+def gif_watermark(img, new_fname, text, color):
+    '''
+    Рисует водяной знак на GIF-ке и сохраняет изображение.
+    '''
+    frames = []
+    for frame in ImageSequence.Iterator(img):
+        frame = frame.convert('RGBA')
+        wm = Image.new('RGBA', frame.size, (0, 0, 0, 0))
+        fontsize = max(frame.size[1] // 100 * 12, 24)
+        font = ImageFont.truetype('Vera_Crouz.ttf', fontsize)
+        indent = fontsize // 6
+        w, h = font.getsize(text)
+        text_position = (frame.size[0] - w - indent, frame.size[1] - h - indent)
+        draw = ImageDraw.Draw(wm)
+        draw.text(text_position, text, font=font, fill=color)
+        del draw
+        frame = Image.alpha_composite(frame, wm)
+        b = io.BytesIO()
+        frame.save(b, format='GIF')
+        frame = Image.open(b)
+        frames.append(frame)
+    out_path = 'images/out/{}/{}'.format(color, new_fname)
+    frames[0].save(out_path, save_all=True, append_images=frames[1:])
 
 
 def all_files_size():
@@ -62,8 +89,8 @@ def send_watermark(message):
     '''
     Сохраняет png и jpeg документы. Обрабатывает, кэширует, отправляет обратно.
     '''
-    if message.document.mime_type not in ('image/png', 'image/jpeg'):
-        bot.reply_to(message, 'Сорри, я умею только JPG и PNG 😕')
+    if message.document.mime_type not in ('image/png', 'image/jpeg', 'image/gif'):
+        bot.reply_to(message, 'Сорри, я умею только JPG, PNG и GIF 😕')
         return
     file = bot.get_file(message.document.file_id)
     downloaded_file = bot.download_file(file.file_path)
@@ -71,10 +98,14 @@ def send_watermark(message):
     with open(path, 'wb') as f:
         f.write(downloaded_file)
 
-    fname = md5(path) + '.jpg'
+    is_gif = message.document.mime_type == 'image/gif'
+    fname = md5(path) + '.gif' if is_gif else '.jpg'
 
     if fname not in os.listdir('images/out/black'):
-        image = Image.open(path).convert('RGB')
+        if is_gif:
+            image = Image.open(path)
+        else:
+            image = Image.open(path).convert('RGBA')
 
         # Если в Exif есть тег Orientation, то поворачиваем изображение
         try:
@@ -86,8 +117,12 @@ def send_watermark(message):
         if orientation in rotate_values:
             image = image.rotate(rotate_values[orientation], expand=True)
 
-        watermark(image, fname, 'black')
-        watermark(image, fname, 'white')
+        if is_gif:
+            gif_watermark(image, fname, watermark_text, 'black')
+            gif_watermark(image, fname, watermark_text, 'white')
+        else:
+            watermark(image, fname, watermark_text, 'black')
+            watermark(image, fname, watermark_text, 'white')
 
     for i in ('black', 'white'):
         document = open('images/out/{}/{}'.format(i, fname), 'rb')
