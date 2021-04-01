@@ -1,5 +1,5 @@
 #!/bin/sh
-cd /bot
+cd /app
 mkdir -p images/out/white
 mkdir -p images/out/black
-python watermark_bot.py
+python3 watermark_bot.py

@@ -4,7 +4,7 @@ services:
     build: .
     restart: always
     volumes:
-      - ./app:/bot
+      - ./app:/app
     environment:
       - TOKEN=Your_Token
       - WATERMARK=@ijustkate_

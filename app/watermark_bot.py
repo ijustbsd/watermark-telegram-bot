@@ -1,13 +1,18 @@
 # -*- coding: utf-8 -*-
 import hashlib
 import io
+import logging
 import os
 
+import aiofiles
 import piexif
-import telebot
+from aiogram import Bot, Dispatcher, executor, types
 from PIL import Image, ImageDraw, ImageEnhance, ImageFont, ImageSequence
 
-bot = telebot.TeleBot(os.getenv('TOKEN'))
+logging.basicConfig(level=logging.ERROR)
+
+bot = Bot(token=os.getenv('TOKEN'))
+dp = Dispatcher(bot)
 
 watermark_text = os.getenv('WATERMARK')
 
@@ -79,27 +84,27 @@ def md5(path):
     return md5hash.hexdigest()
 
 
-@bot.message_handler(commands=['start', 'help'])
-def send_welcome(message):
-    bot.send_message(message.chat.id, 'Отправь мне изображение, как документ! Жду ⏳')
+@dp.message_handler(commands=['start', 'help'])
+async def send_welcome(message):
+    await message.answer('Отправь мне изображение, как документ! Жду ⏳')
 
 
-@bot.message_handler(content_types=['document'])
-def send_watermark(message):
+@dp.message_handler(content_types=types.ContentType.DOCUMENT)
+async def send_watermark(message):
     '''
     Сохраняет png и jpeg документы. Обрабатывает, кэширует, отправляет обратно.
     '''
     if message.document.mime_type not in ('image/png', 'image/jpeg', 'image/gif'):
-        bot.reply_to(message, 'Сорри, я умею только JPG, PNG и GIF 😕')
+        await message.reply('Сорри, я умею только JPG, PNG и GIF 😕')
         return
-    file = bot.get_file(message.document.file_id)
-    downloaded_file = bot.download_file(file.file_path)
+    file = await bot.get_file(message.document.file_id)
+    downloaded_file = await bot.download_file(file.file_path)
     path = 'images/' + message.document.file_name
-    with open(path, 'wb') as f:
-        f.write(downloaded_file)
+    async with aiofiles.open(path, 'wb') as f:
+        await f.write(downloaded_file.read())
 
     is_gif = message.document.mime_type == 'image/gif'
-    fname = md5(path) + '.gif' if is_gif else '.jpg'
+    fname = md5(path) + ('.gif' if is_gif else '.jpg')
 
     if fname not in os.listdir('images/out/black'):
         if is_gif:
@@ -125,19 +130,20 @@ def send_watermark(message):
             watermark(image, fname, watermark_text, 'white')
 
     for i in ('black', 'white'):
-        document = open('images/out/{}/{}'.format(i, fname), 'rb')
-        bot.send_document(message.chat.id, document)
+        wm_file = await aiofiles.open(f'images/out/{i}/{fname}', 'rb')
+        await message.answer_document(wm_file)
 
 
-@bot.message_handler(commands=['size'])
-def send_info(message):
+@dp.message_handler(commands=['size'])
+async def send_info(message):
     data_size = round(all_files_size() / 1048576, 2)
-    bot.send_message(message.chat.id, 'Размер всех фотографий: {} МБ'.format(data_size))
+    await message.answer('Размер всех фотографий: {} МБ'.format(data_size))
 
 
-@bot.message_handler(func=lambda message: True)
-def echo_all(message):
-    bot.reply_to(message, 'Ну и что мне с этим делать?')
+@dp.message_handler()
+async def send_idk(message):
+    await message.reply('Ну и что мне с этим делать?')
 
 
-bot.polling()
+if __name__ == '__main__':
+    executor.start_polling(dp, skip_updates=True)
