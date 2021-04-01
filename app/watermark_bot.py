@@ -80,14 +80,7 @@ async def send_welcome(message):
     types.ContentType.DOCUMENT
 ])
 async def send_watermark(message):
-    '''
-    Сохраняет png и jpeg документы. Обрабатывает, кэширует, отправляет обратно.
-    '''
-    mime_type = message.document.mime_type
-    if message.document.mime_type not in ('image/png', 'image/jpeg', 'image/gif', 'video/mp4'):
-        await message.reply('Сорри, я умею только JPG, PNG, GIF и MP4 😕')
-        return
-    file_type, file_ext = mime_type.split('/')
+    file_type, file_ext = message.document.mime_type.split('/')
     file = await bot.get_file(message.document.file_id)
     downloaded_file = await bot.download_file(file.file_path)
     path = 'images/' + message.document.file_name + '.' + file_ext
@@ -113,7 +106,10 @@ async def send_watermark(message):
                 rotate = rotate_values[orientation]
 
     for c in ('black', 'white'):
-        await watermark(path, fname, watermark_text, c, rotate)
+        code = await watermark(path, fname, watermark_text, c, rotate)
+        if code:
+            await message.answer('Что-то пошло не так, попробуйте ещё раз 😔')
+            return
         wm_file = await aiofiles.open(f'images/out/{c}/{fname}', 'rb')
         await message.answer_document(wm_file)
 
