@@ -18,9 +18,7 @@ watermark_text = os.getenv('WATERMARK')
 
 
 async def watermark(fname, new_fname, text, color, rotate):
-    '''
-    Рисует водяной знак и сохраняет изображение.
-    '''
+    """Draw watermark and save image."""
     ffmpeg_filter = ':'.join([
         'drawtext=fontfile=Vera_Crouz.ttf',
         f"text='{text}'",
@@ -48,9 +46,7 @@ async def watermark(fname, new_fname, text, color, rotate):
 
 
 def all_files_size():
-    '''
-    Считает размер всех изображений.
-    '''
+    """Return the size of all images."""
     size = 0
     for dirpath, _dirnames, filenames in os.walk('images'):
         for f in filenames:
@@ -60,9 +56,7 @@ def all_files_size():
 
 
 def md5(path):
-    '''
-    Считает хэш изображений по кускам, ибо картинка может не влазить в RAM.
-    '''
+    """Calculates the hash of images in chunks, since the picture may not fit into RAM."""
     with open(path, 'rb') as f:
         md5hash = hashlib.md5()
         for chunk in iter(lambda: f.read(4096), b''):
