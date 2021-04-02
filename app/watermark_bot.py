@@ -71,13 +71,15 @@ async def send_welcome(message):
 
 @dp.message_handler(content_types=[
     types.ContentType.ANIMATION,
-    types.ContentType.DOCUMENT
+    types.ContentType.DOCUMENT,
+    types.ContentType.VIDEO
 ])
 async def send_watermark(message):
-    file_type, file_ext = message.document.mime_type.split('/')
-    file = await bot.get_file(message.document.file_id)
+    msg_file = message.video if message.content_type == 'video' else message.document
+    file_type, file_ext = msg_file.mime_type.split('/')
+    file = await bot.get_file(msg_file.file_id)
     downloaded_file = await bot.download_file(file.file_path)
-    path = 'images/' + message.document.file_name + '.' + file_ext
+    path = 'images/' + msg_file.file_name + '.' + file_ext
     async with aiofiles.open(path, 'wb') as f:
         await f.write(downloaded_file.read())
 
